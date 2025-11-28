@@ -1,8 +1,5 @@
 import { DynamicModule, Logger, Module, Provider } from '@nestjs/common';
-import { AssistantService } from './assistant.service';
 import { MixologyService } from './mixology.service';
-import { ChatService } from './chat.service';
-import { ChatController } from './chat.controller';
 import { CocktailDBModule } from 'src/cocktaildb/cocktaildb.module';
 import { MixologyController } from './mixology.controller';
 import {
@@ -118,9 +115,9 @@ export class AssistantModule {
     return {
       module: AssistantModule,
       imports: [CocktailDBModule],
-      controllers: [ChatController, MixologyController],
-      providers: [AssistantConfigProvider, optionsProvider, createAssistantModelProvider(), AssistantService, MixologyService, ChatService],
-      exports: [AssistantConfigProvider, ChatService, ASSISTANT_MODULE_OPTIONS, ASSISTANT_MODEL],
+      controllers: [MixologyController],
+      providers: [AssistantConfigProvider, optionsProvider, createAssistantModelProvider(), MixologyService],
+      exports: [AssistantConfigProvider],
     };
   }
 
@@ -133,9 +130,9 @@ export class AssistantModule {
     return {
       module: AssistantModule,
       imports: [...(options.imports || []), CocktailDBModule],
-      controllers: [ChatController, MixologyController],
-      providers: [...asyncProviders, createAssistantModelProvider(), AssistantService, MixologyService, ChatService],
-      exports: [ChatService, ASSISTANT_MODULE_OPTIONS, ASSISTANT_MODEL],
+      controllers: [MixologyController],
+      providers: [...asyncProviders, createAssistantModelProvider(), MixologyService],
+      exports: [MixologyService],
       global: options.isGlobal,
     };
   }

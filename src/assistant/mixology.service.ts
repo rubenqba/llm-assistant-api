@@ -158,9 +158,6 @@ export class MixologyService implements OnModuleInit {
 
     const history = (checkpoint?.channel_values.messages || []) as unknown as BaseMessage[];
     this.log.debug(`Checkpoint has ${history.length} messages.`);
-    for (const msg of history) {
-      this.log.debug(`Message: ${msg.type} - ${msg.text}`);
-    }
     const messages: Message[] = history
       .filter((msg) => msg.type === 'human' || msg.type === 'ai')
       .map((msg) => ({
