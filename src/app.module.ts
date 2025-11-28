@@ -1,8 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ZodExceptionFilter } from './filters/zod-exception.filter';
 import { CocktailDBModule } from './cocktaildb/cocktaildb.module';
 import { AssistantModule } from './assistant/assistant.module';
@@ -20,9 +18,7 @@ import { AssistantConfigProvider } from './assistant/assistant-config.provider';
       useClass: AssistantConfigProvider,
     }),
   ],
-  controllers: [AppController],
   providers: [
-    AppService,
     {
       provide: APP_PIPE,
       useClass: ZodValidationPipe,

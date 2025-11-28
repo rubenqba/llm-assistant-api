@@ -4,7 +4,7 @@ import { BaseCheckpointSaver } from '@langchain/langgraph';
 import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite';
 import { firstValueFrom } from 'rxjs';
 import { CocktailDBService } from 'src/cocktaildb/cocktaildb.service';
-import { ASSISTANT_MODEL, Message } from './assistant.schema';
+import { ASSISTANT_MODEL, InputMessage, Message, ThreadStateSchema } from './assistant.schema';
 import type { LanguageModelLike } from '@langchain/core/language_models/base';
 import * as z from 'zod';
 
@@ -26,6 +26,13 @@ export class MixologyService implements OnModuleInit {
 
   private initializeAgent() {
     const tools = [
+      tool(
+        (_, config) => {
+          this.log.debug(`get_user_info called with config...`);
+          return `User ID: ${config.context?.user || 'undefined'}, Channel: ${config.context?.channel || 'SMS'}`;
+        },
+        { name: 'get_user_info', description: 'Get user information', schema: z.object({}) },
+      ),
       tool(
         async () => {
           this.log.debug(`list_ingredients called...`);
@@ -121,9 +128,8 @@ export class MixologyService implements OnModuleInit {
       ),
     ];
 
-    const sqliteCheckpointer = SqliteSaver.fromConnString('./mixology_agent_checkpoints.db');
+    this.checkpointer = SqliteSaver.fromConnString('./mixology_agent_checkpoints.db');
 
-    this.checkpointer = sqliteCheckpointer;
     this.agent = createAgent({
       model: this.model,
       systemPrompt: `You are Mixology, a service that specializes in discussing cocktails and mixology.
@@ -131,15 +137,23 @@ export class MixologyService implements OnModuleInit {
         Always give response in a friendly HTML format suitable for direct display to end users.`,
       tools,
       checkpointer: this.checkpointer ?? false,
+      stateSchema: ThreadStateSchema,
     });
   }
 
-  async invoke(message: Message): Promise<Message> {
+  async invoke(message: InputMessage): Promise<Message> {
     this.log.debug(`MixologyService received input: ${message.content} (thread: ${message.thread})`);
 
     const response = await this.agent.invoke(
       { messages: [new HumanMessage(message.content)] },
-      { configurable: { thread_id: message.thread } },
+      {
+        configurable: { thread_id: message.thread },
+        context: {
+          thread: message.thread,
+          user: message.user,
+          channel: message.channel,
+        },
+      },
     );
 
     const lastMessage = response.messages[response.messages.length - 1];
