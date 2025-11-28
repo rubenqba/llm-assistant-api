@@ -1,7 +1,8 @@
-import { Body, Controller, Header, Post } from '@nestjs/common';
-import { createZodDto } from 'nestjs-zod';
+import { Body, Controller, Get, Header, Post, Query } from '@nestjs/common';
+import { createZodDto, ZodSerializerDto } from 'nestjs-zod';
 import z from 'zod';
 import { MixologyService } from './mixology.service';
+import { MessageSchema } from './assistant.schema';
 
 class MessageInputDto extends createZodDto(
   z.object({
@@ -10,10 +11,10 @@ class MessageInputDto extends createZodDto(
   }),
 ) {}
 
-class MessageResponseDto extends createZodDto(
+class MessagesResponse extends createZodDto(
   z.object({
-    content: z.string(),
     thread: z.string(),
+    messages: MessageSchema.array(),
   }),
 ) {}
 
@@ -30,5 +31,14 @@ export class MixologyController {
       thread: message.thread,
     });
     return `<html>${response.content}</html>`;
+  }
+
+  @Get('messages')
+  @ZodSerializerDto(MessagesResponse)
+  getMessages(@Query('thread') thread: string) {
+    return {
+      thread,
+      messages: [],
+    };
   }
 }
