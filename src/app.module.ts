@@ -6,8 +6,8 @@ import { AppService } from './app.service';
 import { ZodExceptionFilter } from './filters/zod-exception.filter';
 import { CocktailDBModule } from './cocktaildb/cocktaildb.module';
 import { AssistantModule } from './assistant/assistant.module';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AssistantModuleOptions, AssistantProvider } from './assistant/assistant.schema';
+import { ConfigModule } from '@nestjs/config';
+import { AssistantConfigProvider } from './assistant/assistant-config.provider';
 
 @Module({
   imports: [
@@ -15,26 +15,9 @@ import { AssistantModuleOptions, AssistantProvider } from './assistant/assistant
       isGlobal: true,
     }),
     CocktailDBModule,
-    // Ejemplo de configuración asíncrona con useFactory
+    // Configuración asíncrona usando useClass
     AssistantModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService): AssistantModuleOptions => {
-        const provider = configService.get<AssistantProvider>('MIXOLOGY_PROVIDER', 'openai');
-        const apiKeyMap: Record<string, string> = {
-          openai: 'OPENAI_API_KEY',
-          google: 'GOOGLE_API_KEY',
-          anthropic: 'ANTHROPIC_API_KEY',
-          grok: 'GROK_API_KEY',
-        };
-        const apiKey = configService.get<string>(apiKeyMap[provider]);
-        return {
-          provider,
-          config: {
-            apiKey,
-          },
-        };
-      },
-      inject: [ConfigService],
+      useClass: AssistantConfigProvider,
     }),
   ],
   controllers: [AppController],

@@ -15,8 +15,10 @@ import {
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ChatAnthropic } from '@langchain/anthropic';
+import { ChatXAI } from '@langchain/xai';
 import { ConfigService } from '@nestjs/config';
 import { LanguageModelLike } from '@langchain/core/language_models/base';
+import { AssistantConfigProvider } from './assistant-config.provider';
 
 const DEFAULT_MODULE_OPTIONS: AssistantModuleOptions = Object.freeze({
   provider: 'openai',
@@ -48,6 +50,9 @@ function createAssistantModelProvider(): Provider {
             apiKey: options.config.apiKey,
             temperature: options.config.temperature,
             maxOutputTokens: options.config.maxTokens,
+            thinkingConfig: {
+              thinkingLevel: 'LOW',
+            },
           });
         }
         case 'anthropic': {
@@ -59,8 +64,17 @@ function createAssistantModelProvider(): Provider {
             maxTokens: options.config.maxTokens,
           });
         }
+        case 'grok': {
+          log.debug(`Grok provider selected with model: ${options.config.model}`);
+          return new ChatXAI({
+            model: options.config.model || 'grok-4-1-fast-reasoning',
+            apiKey: options.config.apiKey,
+            temperature: options.config.temperature,
+            maxTokens: options.config.maxTokens,
+          });
+        }
         default:
-          throw new Error(`Unsupported assistant provider: ${options.provider}`);
+          throw new Error(`Unsupported assistant provider: ${options.provider as string}`);
       }
     },
     inject: [ASSISTANT_MODULE_OPTIONS, ConfigService],
@@ -105,8 +119,8 @@ export class AssistantModule {
       module: AssistantModule,
       imports: [CocktailDBModule],
       controllers: [ChatController, MixologyController],
-      providers: [optionsProvider, createAssistantModelProvider(), AssistantService, MixologyService, ChatService],
-      exports: [ChatService, ASSISTANT_MODULE_OPTIONS, ASSISTANT_MODEL],
+      providers: [AssistantConfigProvider, optionsProvider, createAssistantModelProvider(), AssistantService, MixologyService, ChatService],
+      exports: [AssistantConfigProvider, ChatService, ASSISTANT_MODULE_OPTIONS, ASSISTANT_MODEL],
     };
   }
 
