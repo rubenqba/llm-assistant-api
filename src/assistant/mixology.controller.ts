@@ -11,12 +11,7 @@ class MessageInputDto extends createZodDto(
   }),
 ) {}
 
-class MessagesResponse extends createZodDto(
-  z.object({
-    thread: z.string(),
-    messages: MessageSchema.array(),
-  }),
-) {}
+class MessagesResponse extends createZodDto(MessageSchema.array()) {}
 
 @Controller('mixology')
 export class MixologyController {
@@ -35,10 +30,8 @@ export class MixologyController {
 
   @Get('messages')
   @ZodSerializerDto(MessagesResponse)
-  getMessages(@Query('thread') thread: string) {
-    return {
-      thread,
-      messages: [],
-    };
+  async getMessages(@Query('thread') thread: string) {
+    const messages = await this.assistant.getConversationHistory(thread);
+    return messages;
   }
 }

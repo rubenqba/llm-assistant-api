@@ -1,6 +1,7 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { createAgent, HumanMessage, tool } from 'langchain';
-import { MemorySaver } from '@langchain/langgraph';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { BaseMessage, createAgent, HumanMessage, tool } from 'langchain';
+import { BaseCheckpointSaver } from '@langchain/langgraph';
+import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite';
 import { firstValueFrom } from 'rxjs';
 import { CocktailDBService } from 'src/cocktaildb/cocktaildb.service';
 import { ASSISTANT_MODEL, Message } from './assistant.schema';
@@ -8,14 +9,22 @@ import type { LanguageModelLike } from '@langchain/core/language_models/base';
 import * as z from 'zod';
 
 @Injectable()
-export class MixologyService {
+export class MixologyService implements OnModuleInit {
   private readonly log = new Logger(MixologyService.name);
-  private readonly agent: ReturnType<typeof createAgent>;
+  private agent: ReturnType<typeof createAgent>;
+  private checkpointer: BaseCheckpointSaver;
 
   constructor(
     private readonly cocktails: CocktailDBService,
     @Inject(ASSISTANT_MODEL) private readonly model: LanguageModelLike,
-  ) {
+  ) {}
+
+  onModuleInit() {
+    this.initializeAgent();
+    this.log.debug('MixologyService initialized with agent and tools.');
+  }
+
+  private initializeAgent() {
     const tools = [
       tool(
         async () => {
@@ -112,14 +121,16 @@ export class MixologyService {
       ),
     ];
 
-    const checkpointer = new MemorySaver();
+    const sqliteCheckpointer = SqliteSaver.fromConnString('./mixology_agent_checkpoints.db');
+
+    this.checkpointer = sqliteCheckpointer;
     this.agent = createAgent({
       model: this.model,
       systemPrompt: `You are Mixology, a service that specializes in discussing cocktails and mixology.
         Use the tools provided first to answer user questions about cocktails.
         Always give response in a friendly HTML format suitable for direct display to end users.`,
       tools,
-      checkpointer,
+      checkpointer: this.checkpointer ?? false,
     });
   }
 
@@ -139,5 +150,24 @@ export class MixologyService {
       content: typeof content === 'string' ? content : JSON.stringify(content),
       thread: message.thread,
     };
+  }
+
+  async getConversationHistory(thread: string): Promise<Message[]> {
+    this.log.debug(`Fetching conversation history for thread: ${thread}`);
+    const checkpoint = await this.checkpointer.get({ configurable: { thread_id: thread } });
+
+    const history = (checkpoint?.channel_values.messages || []) as unknown as BaseMessage[];
+    this.log.debug(`Checkpoint has ${history.length} messages.`);
+    for (const msg of history) {
+      this.log.debug(`Message: ${msg.type} - ${msg.text}`);
+    }
+    const messages: Message[] = history
+      .filter((msg) => msg.type === 'human' || msg.type === 'ai')
+      .map((msg) => ({
+        role: msg.type === 'human' ? 'user' : 'assistant',
+        content: msg.text,
+        thread: thread,
+      }));
+    return messages;
   }
 }
