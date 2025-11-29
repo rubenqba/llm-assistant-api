@@ -16,6 +16,7 @@ import { ChatXAI } from '@langchain/xai';
 import { ConfigService } from '@nestjs/config';
 import { LanguageModelLike } from '@langchain/core/language_models/base';
 import { AssistantConfigProvider } from './assistant-config.provider';
+import { FormatterService } from './formatter.service';
 
 const DEFAULT_MODULE_OPTIONS: AssistantModuleOptions = Object.freeze({
   provider: 'openai',
@@ -101,7 +102,9 @@ function createAsyncOptionsProvider(options: AssistantModuleAsyncOptions): Provi
   };
 }
 
-@Module({})
+@Module({
+  providers: [FormatterService],
+})
 export class AssistantModule {
   /**
    * Configura el módulo de forma síncrona con opciones estáticas

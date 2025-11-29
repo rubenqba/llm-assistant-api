@@ -134,7 +134,7 @@ export class MixologyService implements OnModuleInit {
       model: this.model,
       systemPrompt: `You are Mixology, a service that specializes in discussing cocktails and mixology.
         Use the tools provided first to answer user questions about cocktails.
-        Always give response in a friendly HTML format suitable for direct display to end users.`,
+        Always give response in a friendly manner.`,
       tools,
       checkpointer: this.checkpointer ?? false,
       stateSchema: ThreadStateSchema,
@@ -162,7 +162,6 @@ export class MixologyService implements OnModuleInit {
     return {
       role: 'assistant',
       content: typeof content === 'string' ? content : JSON.stringify(content),
-      thread: message.thread,
     };
   }
 

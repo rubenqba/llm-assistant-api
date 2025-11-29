@@ -46,9 +46,13 @@ export type MessageRole = z.infer<typeof MessageRoleSchema>;
 export const MessageSchema = z.object({
   role: MessageRoleSchema,
   content: z.string(),
-  thread: z.string().default('default'),
 });
 export type Message = z.infer<typeof MessageSchema>;
+
+export const OutputResponseSchema = InputMessageSchema.omit({ content: true }).extend({
+  messages: MessageSchema.array().describe('The list of messages in the conversation'),
+});
+export type OutputResponse = z.infer<typeof OutputResponseSchema>;
 
 export const ThreadStateSchema = z.object({
   thread: z.string().describe('The thread ID for the conversation'),
@@ -56,3 +60,17 @@ export const ThreadStateSchema = z.object({
   channel: UserInputChannelSchema.describe('The channel through which the conversation is happening'),
 });
 export type ThreadState = z.infer<typeof ThreadStateSchema>;
+
+// Structured output schemas for the formatter service
+export const FormattedOutputSchema = z.object({
+  messages: z.array(z.string()).min(1).describe('Array of formatted output messages'),
+});
+export type FormattedOutput = z.infer<typeof FormattedOutputSchema>;
+
+export const SMSFormattedOutputSchema = z.object({
+  messages: z
+    .array(z.string().max(160, 'SMS messages must be 160 characters or less'))
+    .min(1)
+    .describe('Array of SMS messages, each with a maximum of 160 characters'),
+});
+export type SMSFormattedOutput = z.infer<typeof SMSFormattedOutputSchema>;
